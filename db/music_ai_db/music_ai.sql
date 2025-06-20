@@ -1,7 +1,7 @@
 
-create database music_ai_1;
+create database music_ai;
 
--- DROP DATABASE music_ai_1;
+-- DROP DATABASE music_ai;
 use music_ai_1;  -- 생성한 DB 사용하기
 
 -- 1.회원관리
