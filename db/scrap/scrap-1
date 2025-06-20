@@ -50,7 +50,7 @@ for idx, (song_name, artist_name) in enumerate(tqdm.tqdm(df[["song_name","artist
     #     break
     headers = {
         "Referer": "https://www.melon.com/index.htm",
-        "User-Agent": random.choice(user_agents)  # 🎯 랜덤 User-Agent 선택
+        "User-Agent": random.choice(user_agents)  #  랜덤 User-Agent 선택
     }
     if not song_name is np.nan:
         query = f"{song_name.replace(" ","")} {artist_name.replace(" ","")}"
