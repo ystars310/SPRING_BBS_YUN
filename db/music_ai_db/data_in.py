@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, text
 
 engine = create_engine("mysql+pymysql://root:song@localhost:3100/music_ai")
 
+# 데이터 로드
 song = pd.read_excel("./csv/or/20250616/single_album_date.xlsx")  # 노래 데이터
 song = song.iloc[:,1:]
 song.columns  # 데이터 컬럼 확인
