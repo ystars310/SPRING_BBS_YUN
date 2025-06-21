@@ -5,91 +5,90 @@ import os
 from sqlalchemy import create_engine, text
 
 
-engine = create_engine("mysql+pymysql://root:song@localhost:3100/music_ai")
-
-# 데이터 로드
 song = pd.read_excel("./csv/or/20250616/single_album_date.xlsx")  # 노래 데이터
 song = song.iloc[:,1:]
-song.columns  # 데이터 컬럼 확인
 
-# db 연결 engine 
-db_info = f"mysql+pymysql://root:song@localhost:3100/music_ai_1"
+song['genre_main'] = song['genre_main'].str.split('|')
+song = song.explode('genre_main').reset_index(drop=True)
+song["genre_main"].value_counts()
+
+# genre table
+genre_extract_df = song[["genre_main"]].drop_duplicates().reset_index(drop=True).reset_index()
+genre_extract_df.columns = ["new_genre_id","genre_name"]
+song = song.merge(genre_extract_df, left_on="genre_main",right_on="genre_name", how="left")
+song[["genre_id"]] = song[["new_genre_id"]]
+song = song.drop("new_genre_id",axis=1)
+genre_extract_df.columns = ["genre_id","genre_name"]
+# song table 
+song_extract_df = song[["song_id","song_name","lyric"]].copy()
+song_extract_df.columns = ["song_id","song_name","song_lyrics"]
+song_extract_df = song_extract_df.drop_duplicates().reset_index(drop=True)
+
+# artist table
+artist_extract_df = song[["artist_id","artist_name"]].copy()
+artist_extract_df = artist_extract_df.drop_duplicates().reset_index(drop=True)
+
+# album table
+album_extract_df = song[["album_id","album_date"]].copy()
+album_extract_df.columns = ["album_id","album_years"]
+album_extract_df = album_extract_df.drop_duplicates().reset_index(drop=True)
+
+# music table
+music_extract_df = song[
+    ["song_id","artist_id","album_id","genre_id"]
+    ].copy().drop_duplicates().reset_index(drop=True)
+
+# karaoke table
+location_df = pd.read_excel("./csv/or/20250616/karaoke_lat_long_set_float_type.xlsx") # 노래방 데이터       
+location_df = location_df.iloc[1:,:]
+karaoke_df = location_df[["브랜드","지점명","주소","Latitude","Longitude"]].copy()
+karaoke_df = karaoke_df.drop_duplicates().reset_index(drop=True)
+karaoke_df.columns = [f"karaoke_{i}" for i in ["name","store","location","lat","long"]]
+###############
+# insert 
+db_info = f"mysql+pymysql://root:song@localhost:3100/music_ai_cjcho"
 engine = create_engine(db_info, connect_args={})
-
-# db테이블 목록 확인  show tables
-with engine.connect() as con:
-    res=con.execute(text("show tables"))
-    table = res.fetchall()
-
-# 데이터 중 길이가 긴것이 있는지 체크하기 
-long_names = song['artist_name'][song['artist_name'].str.len() > 100]
-print(long_names)
-
-# 중복 제거 ( 유니크해야 하므로 제거 )
-song=song[["artist_name","artist_id"]].drop_duplicates()
-song.to_sql
-# 아티스트 이름 ( 가수 이름 ) 
-pd.DataFrame({
-    "artist_id":song.artist_id.unique(),
-    "artist_name":song.artist_name.unique()}  #DB 컬럼 :song.데이터 컬럼  
-    ).to_sql(
-        "artist",                                       # 테이블 이름
+genre_extract_df.to_sql(
+        "genre",
         con=engine,
         if_exists="append",
         index=False
-    )
-print(song.columns)
+        ) 
 
-# 데이터 중 길이가 긴것이 있는지 체크하기 
-long_names = song['song_name'][song['song_name'].str.len() > 100]
-print(long_names)
-
-# 노래 링크,이름,가사 한번에 넣기 -- O
-pd.DataFrame({
-    "song_id":song.song_id,
-    "song_name": song.song_name,
-    "song_lyrics":song.lyric}  #DB 컬럼 :song.데이터 컬럼 
-    ).to_sql(
-        "song",                           # 테이블 이름 
+song_extract_df.to_sql(
+        "song",
         con=engine,
         if_exists="append",
         index=False
-   )
-print(song.columns)
+        ) 
 
-# 앨범 발매일,링크 한번에 넣기 -- O
-pd.DataFrame({
-    "album_id":song.album_id,         # -- 중복이 될수 있지  중복있음 
-    "album_years":song.album_date}  # DB 컬럼 :song.데이터 컬럼  
-    ).to_sql(
-        "album",                        # 테이블 이름 
+artist_extract_df.to_sql(
+        "artist",
         con=engine,
         if_exists="append",
         index=False
-    )
-print(song.columns)
+        ) 
 
-
-genres = set()
-for item in song["genre_main"].unique():
-    genres.update(item.split('|'))
-genre_list = sorted(genres)
-
-# 중복 제거 ( 유니크해야 하므로 제거 )
-song=song[["genre_id","genre_main"]].drop_duplicates()
-song.to_sql
-
-print(song[["genre_id", "genre_main"]].isnull().sum())
-pd.DataFrame({
-    "genre_id":song.genre_id.unique(),
-    "genre_name":song.genre_main.unique()}  #DB 컬럼 :song.데이터 컬럼 
-    ).to_sql(
-        "genre",                           # 테이블 이름 
+album_extract_df.to_sql(
+        "album",
         con=engine,
         if_exists="append",
         index=False
-   )
-print(song.columns)
+        ) 
+
+music_extract_df.to_sql(
+        "music",
+        con=engine,
+        if_exists="append",
+        index=False
+        )
+
+karaoke_df.to_sql(
+        "karaoke",
+        con=engine,
+        if_exists="append",
+        index=False
+        )
 
 
 
