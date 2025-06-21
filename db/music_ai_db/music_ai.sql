@@ -62,9 +62,9 @@ CREATE TABLE music (
 
     PRIMARY KEY (song_id, artist_id, album_id, genre_id),
     FOREIGN KEY (song_id) REFERENCES song(song_id) ON DELETE CASCADE,
-	FOREIGN KEY (artist_id) REFERENCES artist(artist_id) ON DELETE CASCADE,
+    FOREIGN KEY (artist_id) REFERENCES artist(artist_id) ON DELETE CASCADE,
     FOREIGN KEY (album_id) REFERENCES album(album_id) ON DELETE CASCADE,
-	FOREIGN KEY (genre_id) REFERENCES genre(genre_id) ON DELETE CASCADE
+    FOREIGN KEY (genre_id) REFERENCES genre(genre_id) ON DELETE CASCADE
 );
 
 -- 8. 노래연습장 정보 이용관련
